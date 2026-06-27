@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planet Microcap Conference Analysis</title>
+
+<style>
+body{
+    font-family:Arial,sans-serif;
+    margin:40px;
+    background:#fff;
+    color:#222;
+}
+
+h1{
+    margin-bottom:20px;
+}
+
+#search{
+    width:100%;
+    max-width:400px;
+    padding:10px;
+    margin-bottom:20px;
+    border:1px solid #ccc;
+    border-radius:4px;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+th,td{
+    border:1px solid #ddd;
+    padding:12px;
+    text-align:left;
+}
+
+th{
+    background:#f5f5f5;
+}
+
+button{
+    padding:8px 12px;
+    cursor:pointer;
+}
+
+.modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.6);
+    z-index:9999;
+}
+
+.modal-content{
+    background:#fff;
+    width:90%;
+    max-width:900px;
+    max-height:85vh;
+    overflow-y:auto;
+    margin:5vh auto;
+    padding:30px;
+    position:relative;
+    border-radius:8px;
+}
+
+.close{
+    position:absolute;
+    top:15px;
+    right:15px;
+    font-size:20px;
+    cursor:pointer;
+}
+#articleText{
+    line-height:1.6;
+}
+
+#articleText p{
+    margin:0 0 12px;
+}
+
+#articleText ul{
+    margin:0 0 12px 20px;
+}
+
+#articleText strong{
+    display:block;
+    margin:16px 0 8px;
+}
+}
+</style>
+</head>
+<body>
+
+<h1>Planet Microcap Conference Analysis (June 2026, Las Vegas)</h1>
+
+<input
+    type="text"
+    id="search"
+    placeholder="Search company or ticker..."
+>
+
+<table>
+    <thead>
+        <tr>
+            <th>Company</th>
+            <th>Ticker</th>
+            <th>Description</th>
+            <th>Analysis</th>
+        </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+</table>
+
+<div class="modal" id="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal()">✕</span>
+
+        <h2 id="modalCompany"></h2>
+        <p><strong>Ticker:</strong> <span id="modalTicker"></span></p>
+        <p id="modalDescription"></p>
+
+        <hr>
+
+        <div id="articleText"></div>
+    </div>
+</div>
+
+<script>
+
+const SHEET_ID = "1KAtSvSlssyazq5hYVy5P2Y6Ll8C_zB92c_P75GLDKoQ";
+const SHEET_NAME = "Stocks";
+
+const url =
+`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${SHEET_NAME}`;
+
+let allRows = [];
+
+fetch(url)
+.then(res => res.text())
+.then(text => {
+
+    const json = JSON.parse(
+        text.substring(47).slice(0,-2)
+    );
+
+    const rows = json.table.rows;
+
+    allRows = rows.map(r => ({
+        id: r.c[0]?.v || "",
+        company: r.c[1]?.v || "",
+        ticker: r.c[2]?.v || "",
+        description: r.c[3]?.v || "",
+        article: r.c[4]?.v || ""
+    }));
+
+    renderTable(allRows);
+});
+
+function renderTable(data){
+
+    const tbody = document.getElementById("tableBody");
+
+    tbody.innerHTML = "";
+
+    data.forEach(row => {
+
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+            <td>${row.company}</td>
+            <td>${row.ticker}</td>
+            <td>${row.description}</td>
+            <td>
+                <button onclick="openArticle(${row.id})">
+                    Read
+                </button>
+            </td>
+        `;
+
+        tbody.appendChild(tr);
+    });
+}
+
+function openArticle(id){
+
+    const row = allRows.find(x => String(x.id) === String(id));
+
+    if(!row) return;
+
+    document.getElementById("modalCompany").textContent =
+        row.company;
+
+    document.getElementById("modalTicker").textContent =
+        row.ticker;
+
+    document.getElementById("modalDescription").textContent =
+        row.description;
+
+document.getElementById("articleText").innerHTML =
+    row.article;
+
+    document.getElementById("modal").style.display = "block";
+}
+
+function closeModal(){
+    document.getElementById("modal").style.display = "none";
+}
+
+document.getElementById("search")
+.addEventListener("input", function(){
+
+    const q = this.value.toLowerCase();
+
+    const filtered = allRows.filter(row =>
+        row.company.toLowerCase().includes(q) ||
+        row.ticker.toLowerCase().includes(q)
+    );
+
+    renderTable(filtered);
+});
+
+window.onclick = function(event){
+
+    const modal = document.getElementById("modal");
+
+    if(event.target === modal){
+        closeModal();
+    }
+}
+
+</script>
+
+</body>
+</html>
